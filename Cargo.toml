@@ -1,0 +1,26 @@
+[package]
+authors = ["Jamey Sharp <jamey@minilop.net>"]
+categories = ["embedded", "no-std"]
+description = "Oresat System Controller firmware"
+keywords = ["arm", "cortex-m"]
+license = "GPLv3"
+name = "oresat-syscon"
+repository = "https://github.com/oresat/syscon-rs"
+version = "0.1.5"
+
+[dependencies]
+cortex-m = "0.2.6"
+cortex-m-rt = "0.2.0"
+
+[dependencies.cast]
+version = "0.2.2"
+default-features = false
+
+[dependencies.stm32f411xx]
+git = "https://github.com/oresat/stm32f411xx-rs.git"
+
+[profile]
+
+[profile.release]
+debug = true
+lto = true
