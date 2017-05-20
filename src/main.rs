@@ -25,7 +25,6 @@ const FREQUENCY: u32 = 1;
 #[inline(never)]
 fn main() {
     // Critical section, this closure is non-preemptable
-    hprintln!("htaoensuhotaensu;");
     cortex_m::interrupt::free(
         |cs| unsafe {
 
@@ -72,9 +71,18 @@ fn main() {
             adc1.cr2.write(|w| {
                 w.cont().bits(1); //Continuous mode
                 w.adon().bits(1); //ADC on
+                //w.swstart().bits(1); //Start sampling
+                w
+            });
+
+            //Cant write adon and swstart at the same time
+            adc1.cr2.write(|w| {
+                w.cont().bits(1); //Continuous mode
+                w.adon().bits(1); //ADC on
                 w.swstart().bits(1); //Start sampling
                 w
             });
+            //adc1.cr2.modify(|w| w.swstart().bits(1));
 
             // APPLICATION LOGIC
             let mut state = false;
@@ -88,6 +96,7 @@ fn main() {
                 // Toggle the state
                 state = !state;
 
+                hprintln!("ADC {:?} | {:?}", adc1.dr.read().data().bits(), adc1.sr.read().bits());
                 // Blink the LED
                 if state {
                     gpioa.bsrr.write(|w| w.bs5().bits(1));
