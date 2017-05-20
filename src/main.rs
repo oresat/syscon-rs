@@ -54,7 +54,10 @@ fn main() {
             let psc = u16((ratio - 1) / u32(u16::MAX)).unwrap();
             tim3.psc.write(|w| w.psc().bits(psc));
             let arr = u16(ratio / u32(psc + 1)).unwrap();
+            
             tim3.arr.write(|w| w.arr_l().bits(arr));
+
+            hprintln!("ratio {:?} psc {:?} arr {:?}", ratio, psc, arr);
 
 
             // Start the timer
@@ -75,7 +78,7 @@ fn main() {
                 w
             });
 
-            //Cant write adon and swstart at the same time
+            //Cant write adon and swstart at the same timen
             adc1.cr2.write(|w| {
                 w.cont().bits(1); //Continuous mode
                 w.adon().bits(1); //ADC on
@@ -84,11 +87,21 @@ fn main() {
             });
             //adc1.cr2.modify(|w| w.swstart().bits(1));
 
+            //Parameters for linear feedback from ADC to blink timer
+            let Xcoeff = 595/33;
+            let Yint = 459500/33;
+            
             // APPLICATION LOGIC
             let mut state = false;
             loop {
                 // Wait for an update event
                 while tim3.sr.read().uif().bits() == 0 {}
+
+                //Calculate and write new arr for timer 3
+                let lvl = adc1.dr.read().data().bits(); //Read the ADC level
+                let arr = Xcoeff * lvl - Yint;
+
+                tim3.arr.write(|w| w.arr_l().bits(arr));
 
                 // Clear the update event flag
                 tim3.sr.write(|w| w.uif().bits(0));
@@ -96,7 +109,7 @@ fn main() {
                 // Toggle the state
                 state = !state;
 
-                hprintln!("ADC {:?} | {:?}", adc1.dr.read().data().bits(), adc1.sr.read().bits());
+                //hprintln!("ADC {:?} \r", lvl);
                 // Blink the LED
                 if state {
                     gpioa.bsrr.write(|w| w.bs5().bits(1));
