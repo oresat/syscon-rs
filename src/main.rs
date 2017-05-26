@@ -32,6 +32,7 @@ fn main() {
             // INITIALIZATION PHASE
             // Exclusive access to the peripherals
             let gpioa = GPIOA.borrow(cs);
+            let gpiob = GPIOB.borrow(cs);
             let rcc = RCC.borrow(cs);
             let tim3 = TIM3.borrow(cs);
             let adc1 = ADC1.borrow(cs);
@@ -120,6 +121,34 @@ fn main() {
         },
     );
 }
+
+fn CAN_init(){
+    //! Initializes the CAN bus on Nucleo pins D14 and D15
+
+    let gpiob = GPIOB.borrow(cs);
+    
+    // Set board D14 (STM PB8) and board D15 (STM PB9)
+    // to CAN1_Rx and CAN1_Tx, respectively.
+
+    // Set pins to use alternate function
+    gpiob.moder.write(|w|{
+        w.moder8.bits(2);
+        w.moder9.bits(2);
+        w
+    })
+
+    // Set each to AF9 (1001) using AFRHb
+    gpiob.afrh.write(|w| {
+        w.afrh9.bits(5);
+        w.afrh8.bits(5);
+        w
+    });
+
+     
+
+}
+    
+
 
 // This part is the same as before
 #[allow(dead_code)]
