@@ -38,7 +38,11 @@ fn main() {
             let adc1 = ADC1.borrow(cs);
 
             // Power up the relevant peripherals
-            rcc.ahb1enr.write(|w| w.gpioaen().bits(1));
+            rcc.ahb1enr.write(|w|{
+                 w.gpioaen().bits(1);
+                 w.gpioben().bits(1);
+                 w
+            });
             rcc.apb1enr.write(|w|{
                 w.tim3en().bits(1);
                 w.can1en().bits(1);
@@ -65,13 +69,11 @@ fn main() {
 
             hprintln!("ratio {:?} psc {:?} arr {:?}", ratio, psc, arr);
 
-
             // Start the timer
             tim3.cr1.write(|w| w.cen().bits(1));
 
 
-            // Set up ADC
-
+            // Set up ADCn
             // We only want one conversion
             adc1.sqr1.write(|w| w.l().bits(0));
             // The first conversion should look at PA0
@@ -181,7 +183,12 @@ fn CAN_init(){
         let data = 170;
 
         //Select an empty outbox
-
+        if can1.tsr.read().tme0().bits() == 0 {
+            hprintln!("Pending")
+        }
+        else {
+            hprintln!("empty")
+        }
         //Set identifier
         can1.ti0r.write(|w| w.stid().bits(ident));
 
@@ -197,6 +204,17 @@ fn CAN_init(){
             w.txrq().bits(1);
             w
         });
+
+        if can1.tsr.read().tme0().bits() == 0 {
+            hprintln!("Pending")
+        }
+        else {
+            hprintln!("empty")
+        }
+
+        //Wait for request completed
+        while can1.tsr.read().rqcp0().bits() == 0 {}
+        hprintln!("Sent");
     },
     );
 }
