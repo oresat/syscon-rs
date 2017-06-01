@@ -39,8 +39,13 @@ fn main() {
 
             // Power up the relevant peripherals
             rcc.ahb1enr.write(|w| w.gpioaen().bits(1));
-            rcc.apb1enr.write(|w| w.tim3en().bits(1));
+            rcc.apb1enr.write(|w|{
+                w.tim3en().bits(1);
+                w.can1en().bits(1);
+                w
+            });
             rcc.apb2enr.write(|w| w.adc1en().bits(1));
+           
 
             // Configure the pin PA5 as an output pin and PA0 as AIN
             gpioa.moder.write(|w| {
@@ -94,6 +99,10 @@ fn main() {
             let Xcoeff = 595/33;
             let Yint = 459500/33;
             
+            //Run CAN initializer
+            
+            CAN_init();
+
             // APPLICATION LOGIC
             let mut state = false;
             loop {
@@ -133,7 +142,7 @@ fn CAN_init(){
 
         // Set board D14 (STM PB8) and board D15 (STM PB9)
         // to CAN1_Rx and CAN1_Tx, respectively.
-
+        
         // Set pins to use alternate function
         gpiob.moder.write(|w|{
             w.moder8().bits(2);
@@ -153,26 +162,20 @@ fn CAN_init(){
 
         // Wait for INAK bit on CAN_MSR for confirmation
         while can1.msr.read().inak().bits() == 0 {}
-
-
-        // Set up bit timing on CAN_BTR (I think defaults might be ok)
-        //can1.btr.write(|w| )
-
-        // Set up CAN options on CAN_MCR (but i dont think I need any)
-
+        
+        // Set up CAN timing and other options on CAN_MCR (but i dont think I need any)
 
         // Go to normal mode. Clear INRQ an CAN_MCR
-        can1.mcr.write(|w| w.inrq().bits(1));
-
+        can1.mcr.write(|w| w.inrq().bits(0));
+       
         // Hardware listens for sync (11 recessive bits)
         // Hardware confirms sync by clearing INAK on CAN_MSR
-        while can1.msr.read().inak().bits() == 0 {}
+        while can1.msr.read().inak().bits() == 1 {}    
 
         hprintln!("CAN"); //Ready msg
 
         //Send out a test CAN message
         //TODO: make CAN transmit into its own fn
-
         let ident = 8;
         let dataLength = 1;
         let data = 170;
