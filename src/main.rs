@@ -6,13 +6,13 @@ extern crate cast;
 #[macro_use]
 extern crate cortex_m;
 extern crate cortex_m_rt;
-extern crate stm32f411xx;
+extern crate stm32f446;
 
 use core::u16;
 
 use cast::{u16, u32};
 use cortex_m::asm;
-use stm32f411xx::{GPIOA, RCC, TIM3, ADC1};
+use stm32f446::{GPIOA, GPIOB, RCC, TIM3, ADC1, CAN1};
 
 mod frequency {
     /// Frequency of APB1 bus (TIM3 is connected to this bus)
@@ -86,6 +86,8 @@ fn main() {
                 w.swstart().bits(1); //Start sampling
                 w
             });
+
+            //TODO: change to a modify op
             //adc1.cr2.modify(|w| w.swstart().bits(1));
 
             //Parameters for linear feedback from ADC to blink timer
@@ -123,29 +125,77 @@ fn main() {
 }
 
 fn CAN_init(){
-    //! Initializes the CAN bus on Nucleo pins D14 and D15
+    cortex_m::interrupt::free(
+    |cs| unsafe {
+        // Initializes the CAN bus on Nucleo pins D14 and D15
+        let gpiob = GPIOB.borrow(cs);
+        let can1 = CAN1.borrow(cs); // Not sure about this...
 
-    let gpiob = GPIOB.borrow(cs);
-    
-    // Set board D14 (STM PB8) and board D15 (STM PB9)
-    // to CAN1_Rx and CAN1_Tx, respectively.
+        // Set board D14 (STM PB8) and board D15 (STM PB9)
+        // to CAN1_Rx and CAN1_Tx, respectively.
 
-    // Set pins to use alternate function
-    gpiob.moder.write(|w|{
-        w.moder8.bits(2);
-        w.moder9.bits(2);
-        w
-    })
+        // Set pins to use alternate function
+        gpiob.moder.write(|w|{
+            w.moder8().bits(2);
+            w.moder9().bits(2);
+            w
+        });
 
-    // Set each to AF9 (1001) using AFRHb
-    gpiob.afrh.write(|w| {
-        w.afrh9.bits(5);
-        w.afrh8.bits(5);
-        w
-    });
+        // Set each to AF9 (1001) using AFRHb
+        gpiob.afrh.write(|w|{
+            w.afrh9().bits(5);
+            w.afrh8().bits(5);
+            w
+        });
 
-     
+        // Enter initialization mode. Set INRQ on CAN_MCR
+        can1.mcr.write(|w| w.inrq().bits(1));
 
+        // Wait for INAK bit on CAN_MSR for confirmation
+        while can1.msr.read().inak().bits() == 0 {}
+
+
+        // Set up bit timing on CAN_BTR (I think defaults might be ok)
+        //can1.btr.write(|w| )
+
+        // Set up CAN options on CAN_MCR (but i dont think I need any)
+
+
+        // Go to normal mode. Clear INRQ an CAN_MCR
+        can1.mcr.write(|w| w.inrq().bits(1));
+
+        // Hardware listens for sync (11 recessive bits)
+        // Hardware confirms sync by clearing INAK on CAN_MSR
+        while can1.msr.read().inak().bits() == 0 {}
+
+        hprintln!("CAN"); //Ready msg
+
+        //Send out a test CAN message
+        //TODO: make CAN transmit into its own fn
+
+        let ident = 8;
+        let dataLength = 1;
+        let data = 170;
+
+        //Select an empty outbox
+
+        //Set identifier
+        can1.ti0r.write(|w| w.stid().bits(ident));
+
+        //Set DLC
+        can1.tdt0r.write(|w| w.dlc().bits(dataLength));
+
+        //Set data
+        can1.tdl0r.write(|w| w.data0().bits(data));
+
+        //Set TXRQ
+        can1.ti0r.write(|w| {
+            w.stid().bits(ident);
+            w.txrq().bits(1);
+            w
+        });
+    },
+    );
 }
     
 
