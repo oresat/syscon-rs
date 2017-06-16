@@ -9,7 +9,7 @@ extern crate cortex_m_rt;
 extern crate stm32f446;
 
 use core::u16;
-
+use core::cmp::min;
 use cast::{u16, u32};
 use cortex_m::asm;
 use stm32f446::{GPIOA, GPIOB, RCC, TIM3, ADC1, CAN1};
@@ -120,13 +120,14 @@ fn main() {
                 // Toggle the state
                 state = !state;
 
-                //hprintln!("ADC {:?} \r", lvl);
                 // Blink the LED
                 if state {
                     gpioa.bsrr.write(|w| w.bs5().bits(1));
                 } else {
                     gpioa.bsrr.write(|w| w.br5().bits(1));
                 }
+
+                canbus_tx(222, &[1, 4, 8]);
             }
         },
     );
@@ -137,7 +138,7 @@ fn canbus_init(){
     |cs| unsafe {
         // Initializes the CAN bus on Nucleo pins D14 and D15
         let gpiob = GPIOB.borrow(cs);
-        let can1 = CAN1.borrow(cs); // Not sure about this...
+        let can1 = CAN1.borrow(cs); 
 
         // Set board D14 (STM PB8) and board D15 (STM PB9)
         // to CAN1_Rx and CAN1_Tx, respectively.
@@ -187,27 +188,46 @@ fn canbus_init(){
         // Hardware confirms sync by clearing INAK on CAN_MSR
         while can1.msr.read().inak().bits() == 1 {}    
 
-        hprintln!("CAN"); //Ready msg
+    },
+    );
+}
 
+fn canbus_tx(ident: u16, data: &[u8]){
+    cortex_m::interrupt::free(
+    |cs| unsafe {
         //Send out a test CAN message
-        //TODO: make CAN transmit into its own fn
-        let ident = 8;
-        let data_length = 1;
-        let data = 170;
+        
+        let can1 = CAN1.borrow(cs); 
+        let data_length = min(data.len(), 8) as u8;
+        //TODO: Check that data is not too long.
+        
 
         //Select an empty outbox
         if can1.tsr.read().tme0().bits() == 0 {
-            hprintln!("Pending")
+           
         }
         else {
-            hprintln!("empty")
+            
         }
         
         //Set DLC
         can1.tdt0r.write(|w| w.dlc().bits(data_length));
 
         //Set data
-        can1.tdl0r.write(|w| w.data0().bits(data));
+        can1.tdl0r.write(|w| {
+            w.data0().bits(*data.get(0).unwrap_or(&0));
+            w.data1().bits(*data.get(1).unwrap_or(&0));
+            w.data2().bits(*data.get(2).unwrap_or(&0));
+            w.data3().bits(*data.get(3).unwrap_or(&0));
+            w
+        });
+        can1.tdh0r.write(|w| {
+            w.data4().bits(*data.get(4).unwrap_or(&0));
+            w.data5().bits(*data.get(5).unwrap_or(&0));
+            w.data6().bits(*data.get(6).unwrap_or(&0));
+            w.data7().bits(*data.get(7).unwrap_or(&0));
+            w
+        });
 
         //Set TXRQ
         can1.ti0r.write(|w| {
@@ -216,16 +236,9 @@ fn canbus_init(){
             w
         });
 
-        if can1.tsr.read().tme0().bits() == 0 {
-            hprintln!("Pending")
-        }
-        else {
-            hprintln!("empty")
-        }
-
         //Wait for request completed
         while can1.tsr.read().rqcp0().bits() == 0 {}
-        hprintln!("Sent");
+
     },
     );
 }
