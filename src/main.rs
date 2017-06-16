@@ -16,7 +16,7 @@ use stm32f446::{GPIOA, GPIOB, RCC, TIM3, ADC1, CAN1};
 
 mod frequency {
     /// Frequency of APB1 bus (TIM3 is connected to this bus)
-    pub const APB1: u32 = 8_000_000;
+    pub const APB1: u32 = 16_000_000;
 }
 
 /// Timer frequency
@@ -32,7 +32,7 @@ fn main() {
             // INITIALIZATION PHASE
             // Exclusive access to the peripherals
             let gpioa = GPIOA.borrow(cs);
-            let gpiob = GPIOB.borrow(cs);
+            //let gpiob = GPIOB.borrow(cs);
             let rcc = RCC.borrow(cs);
             let tim3 = TIM3.borrow(cs);
             let adc1 = ADC1.borrow(cs);
@@ -67,8 +67,6 @@ fn main() {
             
             tim3.arr.write(|w| w.arr_l().bits(arr));
 
-            hprintln!("ratio {:?} psc {:?} arr {:?}", ratio, psc, arr);
-
             // Start the timer
             tim3.cr1.write(|w| w.cen().bits(1));
 
@@ -98,12 +96,11 @@ fn main() {
             //adc1.cr2.modify(|w| w.swstart().bits(1));
 
             //Parameters for linear feedback from ADC to blink timer
-            let Xcoeff = 595/33;
-            let Yint = 459500/33;
+            let x_coeff = 595/33;
+            let y_int = 459500/33;
             
             //Run CAN initializer
-            
-            CAN_init();
+            canbus_init();
 
             // APPLICATION LOGIC
             let mut state = false;
@@ -113,7 +110,7 @@ fn main() {
 
                 //Calculate and write new arr for timer 3
                 let lvl = adc1.dr.read().data().bits(); //Read the ADC level
-                let arr = Xcoeff * lvl - Yint;
+                let arr = x_coeff * lvl - y_int;
 
                 tim3.arr.write(|w| w.arr_l().bits(arr));
 
@@ -135,7 +132,7 @@ fn main() {
     );
 }
 
-fn CAN_init(){
+fn canbus_init(){
     cortex_m::interrupt::free(
     |cs| unsafe {
         // Initializes the CAN bus on Nucleo pins D14 and D15
@@ -154,21 +151,37 @@ fn CAN_init(){
 
         // Set each to AF9 (1001) using AFRHb
         gpiob.afrh.write(|w|{
-            w.afrh9().bits(5);
-            w.afrh8().bits(5);
+            w.afrh9().bits(9);
+            w.afrh8().bits(9);
             w
         });
 
         // Enter initialization mode. Set INRQ on CAN_MCR
-        can1.mcr.write(|w| w.inrq().bits(1));
+        can1.mcr.write(|w| {
+            w.inrq().bits(1);
+            w.sleep().bits(0);
+            w
+        });
 
         // Wait for INAK bit on CAN_MSR for confirmation
         while can1.msr.read().inak().bits() == 0 {}
         
         // Set up CAN timing and other options on CAN_MCR (but i dont think I need any)
+        can1.btr.write(|w|{ 
+            //w.lbkm().bits(1); //loopback
+            //w.silm().bits(1); //silentmode
+            w.brp().bits(99);
+            w.ts1().bits(12);
+            w.ts2().bits(1);
+            w
+        }); 
 
         // Go to normal mode. Clear INRQ an CAN_MCR
-        can1.mcr.write(|w| w.inrq().bits(0));
+        can1.mcr.write(|w|{
+             w.inrq().bits(0);
+             w.sleep().bits(0);
+             w
+        });
        
         // Hardware listens for sync (11 recessive bits)
         // Hardware confirms sync by clearing INAK on CAN_MSR
@@ -179,7 +192,7 @@ fn CAN_init(){
         //Send out a test CAN message
         //TODO: make CAN transmit into its own fn
         let ident = 8;
-        let dataLength = 1;
+        let data_length = 1;
         let data = 170;
 
         //Select an empty outbox
@@ -189,11 +202,9 @@ fn CAN_init(){
         else {
             hprintln!("empty")
         }
-        //Set identifier
-        can1.ti0r.write(|w| w.stid().bits(ident));
-
+        
         //Set DLC
-        can1.tdt0r.write(|w| w.dlc().bits(dataLength));
+        can1.tdt0r.write(|w| w.dlc().bits(data_length));
 
         //Set data
         can1.tdl0r.write(|w| w.data0().bits(data));
