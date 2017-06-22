@@ -28,7 +28,7 @@ fn main() {
     cortex_m::interrupt::free(
         |cs| unsafe {
 
-            
+            hprintln!("Hello");
             // INITIALIZATION PHASE
             // Exclusive access to the peripherals
             let gpioa = GPIOA.borrow(cs);
@@ -123,11 +123,13 @@ fn main() {
                 // Blink the LED
                 if state {
                     gpioa.bsrr.write(|w| w.bs5().bits(1));
+                    canbus_tx(222, &[1, 4, 8]);
                 } else {
                     gpioa.bsrr.write(|w| w.br5().bits(1));
+                    canbus_tx(222, &[2, 5, 9]);
                 }
 
-                canbus_tx(222, &[1, 4, 8]);
+                
             }
         },
     );
@@ -239,8 +241,7 @@ fn canbus_tx(ident: u16, data: &[u8]){
         //Wait for request completed
         while can1.tsr.read().rqcp0().bits() == 0 {}
 
-    },
-    );
+    });
 }
     
 

@@ -54,3 +54,11 @@ A brief intro to those new to Rust and/or embedded development:
 - You also need the arm-eabi versions of gcc and gdb. The eabi is the embedded ABI, essentially referring to the ARM interface for running code on the chip with no intermediate kernel.
 - Openocd is the open on chip debugger. This program talks to the programming interface located either on the development board, or on the JTAG adapter connected to a production board. OpenOCD also provides the interface gdb needs to communicate with the chip.
 - If you have skimmed over a Rust tutorial, you should be familiar with cargo. xargo is a wrapper for cargo that builds libcore for ARM since cargo does not do this on its own. 
+
+## Next steps
+
+- Send useful data (ADC value)
+- Wait for a better way to work with the multiple mailboxes before using them
+- Use concepts from "Fearless concurrency in Rust" blog post about RTFM to implement interrupt handling (message receive). This can be done incrementally.
+- Parameterize initialization/timing (is there a way to implement it @ compile time?)
+- Make this into a library
