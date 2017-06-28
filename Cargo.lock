@@ -6,7 +6,7 @@ dependencies = [
  "cortex-m 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "cortex-m-rt 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "stm32f411xx 0.1.0 (git+https://github.com/oresat/stm32f411xx-rs.git)",
- "stm32f446 0.1.0",
+ "stm32f446 0.1.0 (git+https://github.com/oresat/stm32f446xx-rs.git)",
 ]
 
 [[package]]
@@ -54,6 +54,7 @@ dependencies = [
 [[package]]
 name = "stm32f446"
 version = "0.1.0"
+source = "git+https://github.com/oresat/stm32f446xx-rs.git#2cf06b15e8a8b8cc280709320bbbb21df44d4ad6"
 dependencies = [
  "cortex-m 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "vcell 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -79,5 +80,6 @@ dependencies = [
 "checksum cortex-m-semihosting 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "54a88e8fd577808637f819107f34eece1b6b45be8db1c56d1c563095b80b655e"
 "checksum r0 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "6e7bbed8cd0a245bbf3759ebb35c964822b7a8c15ceeeee56d4cc5f060ce518e"
 "checksum stm32f411xx 0.1.0 (git+https://github.com/oresat/stm32f411xx-rs.git)" = "<none>"
+"checksum stm32f446 0.1.0 (git+https://github.com/oresat/stm32f446xx-rs.git)" = "<none>"
 "checksum vcell 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "45c297f0afb6928cd08ab1ff9d95e99392595ea25ae1b5ecf822ff8764e57a0d"
 "checksum volatile-register 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "0d67cb4616d99b940db1d6bd28844ff97108b498a6ca850e5b6191a532063286"

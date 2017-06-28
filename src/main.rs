@@ -169,10 +169,17 @@ fn canbus_init(){
         // Wait for INAK bit on CAN_MSR for confirmation
         while can1.msr.read().inak().bits() == 0 {}
         
-        // Set up CAN timing and other options on CAN_MCR (but i dont think I need any)
+        // Set up CAN timing (peripheral timer is 16 MHz) 
         can1.btr.write(|w|{ 
             //w.lbkm().bits(1); //loopback
             //w.silm().bits(1); //silentmode
+
+            //Set for 500kbps rate
+            //w.brp().bits(1);
+            //w.ts1().bits(12);
+            //w.ts2().bits(1);
+
+
             w.brp().bits(99);
             w.ts1().bits(12);
             w.ts2().bits(1);

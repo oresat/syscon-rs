@@ -17,7 +17,7 @@ version = "0.2.2"
 default-features = false
 
 [dependencies.stm32f446]
-path = "../stm32f446"
+git = "https://github.com/oresat/stm32f446xx-rs.git"
 
 [dependencies.stm32f411xx]
 git = "https://github.com/oresat/stm32f411xx-rs.git"
